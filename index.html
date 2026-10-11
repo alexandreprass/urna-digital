@@ -4,7 +4,582 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Urna Digital • Vote Agora</title>
-  <!-- Full content will be updated in next step if truncated -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a25;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f5;
+      --muted: #8888a0;
+      --accent: #00e5a0;
+      --accent-glow: rgba(0,229,160,0.3);
+      --lula: #e53935;
+      --flavio: #1565c0;
+      --warning: #ff9800;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,229,160,0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(21,101,192,0.08), transparent),
+        radial-gradient(ellipse 40% 30% at 0% 80%, rgba(229,57,53,0.06), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 0%, #00e5a0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 1.05rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .badge span { color: var(--accent); font-weight: 600; }
+
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) {
+      .results { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .card.lula::before { background: var(--lula); }
+    .card.flavio::before { background: var(--flavio); }
+    .card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card .number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .card .votes {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .card .percent {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .card.lula .percent { color: var(--lula); }
+    .card.flavio .percent { color: #42a5f5; }
+    .bar {
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .card.lula .bar-fill { background: var(--lula); }
+    .card.flavio .bar-fill { background: var(--flavio); }
+    .total-row {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+    .total-row strong { color: var(--text); }
+
+    .urna-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    .urna {
+      background: linear-gradient(180deg, #1e1e28 0%, #14141c 100%);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+    }
+    .urna-screen {
+      background: #0d1117;
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .urna-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    #display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #00e5a0;
+      text-shadow: 0 0 20px rgba(0,229,160,0.4);
+      z-index: 1;
+    }
+    #status {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 8px;
+      z-index: 1;
+      text-align: center;
+    }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .key {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      height: 56px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .key:hover { background: #252530; transform: translateY(-1px); }
+    .key:active { transform: translateY(1px); }
+    .key.action {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .key.confirma {
+      background: linear-gradient(135deg, #00c853, #00e676);
+      color: #0a0a0f;
+      border-color: transparent;
+    }
+    .key.confirma:hover { filter: brightness(1.1); }
+    .key.corrige {
+      background: linear-gradient(135deg, #ff6d00, #ff9100);
+      color: #0a0a0f;
+      border-color: transparent;
+    }
+
+    .cooldown {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--warning);
+      height: 24px;
+      margin-top: 12px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    .config-toggle {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      z-index: 100;
+    }
+    .config-panel {
+      display: none;
+      position: fixed;
+      bottom: 60px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 320px;
+      z-index: 100;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .config-panel.open { display: block; }
+    .config-panel h4 { margin-bottom: 12px; font-size: 0.95rem; }
+    .config-panel textarea {
+      width: 100%;
+      height: 120px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 10px;
+      resize: vertical;
+    }
+    .config-panel button {
+      margin-top: 10px;
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
 </head>
-<body><h1>Loading...</h1></body>
+<body>
+  <div class="container">
+    <header>
+      <h1>Urna Digital</h1>
+      <p>Simulador moderno de urna eletrônica — vote e acompanhe ao vivo</p>
+      <div class="badge">
+        <span>●</span> Online agora • <span id="online">—</span>
+      </div>
+    </header>
+
+    <div class="results">
+      <div class="card lula">
+        <h3>Lula</h3>
+        <div class="number">13</div>
+        <div class="votes" id="votes-lula">0</div>
+        <div class="percent" id="pct-lula">0%</div>
+        <div class="bar"><div class="bar-fill" id="bar-lula" style="width:0%"></div></div>
+      </div>
+      <div class="card flavio">
+        <h3>Flávio Bolsonaro</h3>
+        <div class="number">22</div>
+        <div class="votes" id="votes-flavio">0</div>
+        <div class="percent" id="pct-flavio">0%</div>
+        <div class="bar"><div class="bar-fill" id="bar-flavio" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="total-row">
+      Total de votos: <strong id="total-votes">0</strong>
+    </div>
+
+    <div class="urna-wrapper">
+      <div class="urna">
+        <div class="urna-screen">
+          <div id="display">—</div>
+          <div id="status">Digite 13 ou 22 e confirme</div>
+        </div>
+        <div class="keypad">
+          <button class="key" data-key="1">1</button>
+          <button class="key" data-key="2">2</button>
+          <button class="key" data-key="3">3</button>
+          <button class="key" data-key="4">4</button>
+          <button class="key" data-key="5">5</button>
+          <button class="key" data-key="6">6</button>
+          <button class="key" data-key="7">7</button>
+          <button class="key" data-key="8">8</button>
+          <button class="key" data-key="9">9</button>
+          <button class="key action corrige" data-key="corrige">CORRIGE</button>
+          <button class="key" data-key="0">0</button>
+          <button class="key action confirma" data-key="confirma">CONFIRMA</button>
+        </div>
+        <div class="cooldown" id="cooldown"></div>
+      </div>
+    </div>
+
+    <footer>
+      Este é um simulador independente e não oficial.<br>
+      Não tem relação com o TSE ou qualquer partido.<br>
+      <a href="https://github.com/alexandreprass/urna-digital" target="_blank">Código no GitHub</a>
+    </footer>
+  </div>
+
+  <button class="config-toggle" onclick="toggleConfig()">⚙️ Config DB</button>
+  <div class="config-panel" id="configPanel">
+    <h4>Configuração do Banco</h4>
+    <textarea id="configInput" placeholder='Cole aqui o config do Firebase (JSON) ou deixe vazio para usar modo local demo'>{
+  "apiKey": "SUA_API_KEY",
+  "authDomain": "seu-projeto.firebaseapp.com",
+  "projectId": "seu-projeto",
+  "storageBucket": "seu-projeto.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123456:web:abc"
+}</textarea>
+    <button onclick="saveConfig()">Salvar e Conectar</button>
+    <p style="font-size:0.7rem;color:#888;margin-top:8px;">Suporta Firebase Firestore. Depois de salvar, recarregue a página.</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    let firebaseConfig = null;
+    try {
+      const saved = localStorage.getItem('urna_firebase_config');
+      if (saved) firebaseConfig = JSON.parse(saved);
+    } catch(e) {}
+
+    let input = '';
+    let cooldownUntil = 0;
+    let db = null;
+    let usingFirebase = false;
+    const COOLDOWN_MS = 1500;
+
+    let localVotes = { lula: 0, flavio: 0 };
+    try {
+      const saved = localStorage.getItem('urna_local_votes');
+      if (saved) localVotes = JSON.parse(saved);
+    } catch(e) {}
+
+    const display = document.getElementById('display');
+    const status = document.getElementById('status');
+    const cooldownEl = document.getElementById('cooldown');
+
+    function updateDisplay() {
+      display.textContent = input || '—';
+    }
+
+    function setStatus(msg) {
+      status.textContent = msg;
+    }
+
+    function updateResultsUI(lula, flavio) {
+      const total = lula + flavio;
+      document.getElementById('votes-lula').textContent = lula.toLocaleString('pt-BR');
+      document.getElementById('votes-flavio').textContent = flavio.toLocaleString('pt-BR');
+      document.getElementById('total-votes').textContent = total.toLocaleString('pt-BR');
+
+      const pctL = total ? Math.round((lula / total) * 100) : 0;
+      const pctF = total ? Math.round((flavio / total) * 100) : 0;
+      document.getElementById('pct-lula').textContent = pctL + '%';
+      document.getElementById('pct-flavio').textContent = pctF + '%';
+      document.getElementById('bar-lula').style.width = pctL + '%';
+      document.getElementById('bar-flavio').style.width = pctF + '%';
+    }
+
+    async function initFirebase() {
+      if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === 'SUA_API_KEY') {
+        usingFirebase = false;
+        updateResultsUI(localVotes.lula, localVotes.flavio);
+        setStatus('Modo demo local • Configure o Firebase para votos reais');
+        return;
+      }
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        usingFirebase = true;
+
+        const ref = doc(db, 'votes', 'totals');
+        onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            updateResultsUI(data.lula || 0, data.flavio || 0);
+          } else {
+            setDoc(ref, { lula: 0, flavio: 0 });
+          }
+        });
+        setStatus('Conectado ao banco • Digite 13 ou 22');
+      } catch (err) {
+        console.error(err);
+        usingFirebase = false;
+        updateResultsUI(localVotes.lula, localVotes.flavio);
+        setStatus('Erro no Firebase • Usando modo local');
+      }
+    }
+
+    async function castVote(candidate) {
+      if (Date.now() < cooldownUntil) return;
+      cooldownUntil = Date.now() + COOLDOWN_MS;
+
+      if (usingFirebase && db) {
+        const ref = doc(db, 'votes', 'totals');
+        try {
+          await updateDoc(ref, { [candidate]: increment(1) });
+        } catch (e) {
+          await setDoc(ref, { lula: candidate === 'lula' ? 1 : 0, flavio: candidate === 'flavio' ? 1 : 0 }, { merge: true });
+        }
+      } else {
+        localVotes[candidate]++;
+        localStorage.setItem('urna_local_votes', JSON.stringify(localVotes));
+        updateResultsUI(localVotes.lula, localVotes.flavio);
+      }
+
+      display.style.color = '#00e5a0';
+      setStatus('Voto registrado!');
+      setTimeout(() => {
+        display.style.color = '#00e5a0';
+        setStatus('Digite 13 ou 22 e confirme');
+      }, 1200);
+
+      startCooldownUI();
+    }
+
+    function startCooldownUI() {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, cooldownUntil - Date.now());
+        if (remaining <= 0) {
+          cooldownEl.textContent = '';
+          clearInterval(interval);
+        } else {
+          cooldownEl.textContent = `Aguarde ${(remaining/1000).toFixed(1)}s`;
+        }
+      }, 100);
+    }
+
+    document.querySelectorAll('.key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        if (key === 'corrige') {
+          input = '';
+          updateDisplay();
+          setStatus('Digite 13 ou 22 e confirme');
+          return;
+        }
+        if (key === 'confirma') {
+          if (input === '13') {
+            castVote('lula');
+            input = '';
+          } else if (input === '22') {
+            castVote('flavio');
+            input = '';
+          } else {
+            setStatus('Número inválido • Use 13 ou 22');
+            setTimeout(() => setStatus('Digite 13 ou 22 e confirme'), 1500);
+          }
+          updateDisplay();
+          return;
+        }
+        if (input.length < 2) {
+          input += key;
+          updateDisplay();
+          if (input === '13' || input === '22') {
+            setStatus('Pressione CONFIRMA');
+          } else if (input.length === 2) {
+            setStatus('Número inválido');
+          }
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        document.querySelector(`[data-key="${e.key}"]`)?.click();
+      } else if (e.key === 'Enter') {
+        document.querySelector('[data-key="confirma"]')?.click();
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        document.querySelector('[data-key="corrige"]')?.click();
+      }
+    });
+
+    window.toggleConfig = function() {
+      document.getElementById('configPanel').classList.toggle('open');
+    };
+    window.saveConfig = function() {
+      const raw = document.getElementById('configInput').value.trim();
+      try {
+        const cfg = JSON.parse(raw);
+        localStorage.setItem('urna_firebase_config', JSON.stringify(cfg));
+        alert('Config salva! Recarregue a página.');
+        location.reload();
+      } catch (e) {
+        alert('JSON inválido');
+      }
+    };
+
+    const savedCfg = localStorage.getItem('urna_firebase_config');
+    if (savedCfg) document.getElementById('configInput').value = savedCfg;
+
+    updateDisplay();
+    initFirebase();
+
+    setInterval(() => {
+      document.getElementById('online').textContent = Math.floor(80 + Math.random() * 40);
+    }, 5000);
+    document.getElementById('online').textContent = '—';
+  </script>
+</body>
 </html>
